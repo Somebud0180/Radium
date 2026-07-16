@@ -81,6 +81,8 @@ struct ShortcutControl: View {
             if !shortcut.description.isEmpty { Text(shortcut.description).font(.caption).foregroundStyle(.secondary)
             }
             
+            Spacer(minLength: 0)
+            
             HStack {
                 Spacer()
                 switch shortcut.controlType {
