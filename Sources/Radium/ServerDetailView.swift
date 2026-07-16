@@ -78,18 +78,46 @@ struct ShortcutControl: View {
             Text(shortcut.label)
                 .font(.headline)
             
-            if !shortcut.description.isEmpty { Text(shortcut.description).font(.caption).foregroundStyle(.secondary) }
-            switch shortcut.controlType {
-            case .button:
-                Button("Run") { Task { await run(shortcut.command) } }.buttonStyle(.borderedProminent)
-            case .terminal:
-                Text("Use this template in Terminal: \(shortcut.command)").font(.caption)
-            case .toggle:
-                Button("Run toggle") { Task { response = await RCONSession.shared.execute(shortcut.toggleConfiguration.command.isEmpty ? shortcut.command : shortcut.toggleConfiguration.command) ?? "" } }
-                if !response.isEmpty { Text(String(response.prefix(shortcut.toggleConfiguration.responseExcerptLength))).font(.caption).lineLimit(3) }
-            case .switch:
-                Toggle(isOn: Binding(get: { switchState ?? false }, set: { wanted in Task { await setSwitch(wanted) } })) { Text(switchState == nil ? "Unknown" : (switchState! ? "On" : "Off")) }
-                Button("Refresh status") { Task { await refresh() } }.font(.caption)
+            if !shortcut.description.isEmpty { Text(shortcut.description).font(.caption).foregroundStyle(.secondary)
+            }
+            
+            HStack {
+                Spacer()
+                switch shortcut.controlType {
+                case .button:
+                    Button("Run") {
+                        Task { await run(shortcut.command) }
+                    }
+                    .adaptiveGlassButton(prominent: true)
+                    
+                case .terminal:
+                    Text("Use this template in Terminal: \(shortcut.command)").font(.caption)
+                    
+                case .toggle:
+                    Button("Run toggle") {
+                        Task {
+                            response = await RCONSession.shared.execute(shortcut.toggleConfiguration.command.isEmpty ? shortcut.command : shortcut.toggleConfiguration.command) ?? ""
+                        }
+                    }
+                    
+                    if !response.isEmpty { Text(String(response.prefix(shortcut.toggleConfiguration.responseExcerptLength))).font(.caption).lineLimit(3)
+                    }
+                    
+                case .switch:
+                    Toggle(
+                        isOn: Binding(
+                            get: { switchState ?? false },
+                            set: { wanted in Task { await setSwitch(wanted) } }
+                        )
+                    ) {
+                        Text(switchState == nil ? "Unknown" : (switchState! ? "On" : "Off"))
+                    }
+                    
+                    Button("Refresh status") {
+                        Task { await refresh() }
+                    }
+                    .font(.caption)
+                }
             }
         }
         .padding(12)
