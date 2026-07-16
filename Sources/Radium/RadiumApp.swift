@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct RCONCommanderApp: App {
+struct RadiumApp: App {
     @StateObject private var store = ServerStore()
     @Environment(\.scenePhase) private var scenePhase
 

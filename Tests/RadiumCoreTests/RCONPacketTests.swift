@@ -1,5 +1,5 @@
 import XCTest
-@testable import RCONCore
+@testable import RadiumCore
 
 final class RCONPacketTests: XCTestCase {
     func testPacketRoundTrip() throws {

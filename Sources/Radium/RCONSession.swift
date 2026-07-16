@@ -1,5 +1,5 @@
 import Foundation
-import RCONCore
+import RadiumCore
 
 @MainActor
 final class RCONSession: ObservableObject {

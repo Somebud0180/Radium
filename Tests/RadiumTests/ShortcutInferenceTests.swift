@@ -1,5 +1,5 @@
 import XCTest
-@testable import RCONCommander
+@testable import Radium
 
 final class ShortcutInferenceTests: XCTestCase {
     func testInfersSwitchWhenAllCommandsExist() {
