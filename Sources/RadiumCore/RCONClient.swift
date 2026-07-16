@@ -9,7 +9,7 @@ public actor RCONClient {
     public init(timeout: Duration = .seconds(8)) { self.timeout = timeout }
 
     public func connect(host: String, port: UInt16) async throws {
-        await disconnect()
+        disconnect()
         guard let nwPort = NWEndpoint.Port(rawValue: port) else { throw RCONError.connectionFailed("Invalid port") }
         let newConnection = NWConnection(host: NWEndpoint.Host(host), port: nwPort, using: .tcp)
         connection = newConnection
@@ -20,7 +20,7 @@ public actor RCONClient {
                 return try await self.waitUntilReady(newConnection)
             }
         } catch {
-            await disconnect()
+            disconnect()
             throw error
         }
     }
@@ -29,7 +29,7 @@ public actor RCONClient {
         let id = nextRequestID()
         try await send(RCONPacket(requestID: id, type: .authentication, body: password))
         let response = try await receivePacket()
-        guard response.type == .authenticationResponse else { throw RCONError.protocolViolation("Expected authentication response") }
+        guard response.type == .command else { throw RCONError.protocolViolation("Expected authentication response") }
         guard response.requestID != -1, response.requestID == id else { throw RCONError.authenticationFailed }
     }
 
@@ -54,7 +54,7 @@ public actor RCONClient {
     }
 
     private func waitUntilReady(_ connection: NWConnection) async throws {
-        try await withCheckedThrowingContinuation { continuation in
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             connection.stateUpdateHandler = { state in
                 switch state {
                 case .ready: continuation.resume()
@@ -69,7 +69,7 @@ public actor RCONClient {
     private func send(_ packet: RCONPacket) async throws {
         guard let connection else { throw RCONError.disconnected }
         try await withTimeout {
-            try await withCheckedThrowingContinuation { continuation in
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
                 connection.send(content: packet.encoded(), completion: .contentProcessed { error in
                     if let error { continuation.resume(throwing: RCONError.connectionFailed(error.localizedDescription)) }
                     else { continuation.resume() }
@@ -95,7 +95,7 @@ public actor RCONClient {
 
     private func receiveChunk(_ connection: NWConnection, minimum: Int) async throws -> Data {
         try await withTimeout {
-            try await withCheckedThrowingContinuation { continuation in
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Data, Error>) in
                 connection.receive(minimumIncompleteLength: minimum, maximumLength: 65_536) { data, _, complete, error in
                     if let error { continuation.resume(throwing: RCONError.connectionFailed(error.localizedDescription)) }
                     else if let data, !data.isEmpty { continuation.resume(returning: data) }

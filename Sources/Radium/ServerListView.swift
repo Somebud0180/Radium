@@ -44,8 +44,8 @@ struct ServerEditorView: View {
             Form {
                 Section("Server") {
                     TextField("Name", text: $name)
-                    TextField("Host or IP address", text: $host).textInputAutocapitalization(.never).autocorrectionDisabled()
-                    TextField("Port", text: $port).keyboardType(.numberPad)
+                    TextField("Host or IP address", text: $host).radiumHostInputTraits()
+                    TextField("Port", text: $port).radiumPortInputTraits()
                     SecureField("RCON password", text: $password)
                     Picker("Profile", selection: $profile) { ForEach(ServerProfile.allCases) { Text($0.title).tag($0) } }
                 }
@@ -75,5 +75,25 @@ struct ServerEditorView: View {
         if let index = store.servers.firstIndex(where: { $0.id == server.id }) { store.servers[index] = server } else { store.servers.append(server) }
         store.savePassword(password, for: server)
         dismiss()
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func radiumHostInputTraits() -> some View {
+        #if os(iOS)
+        textInputAutocapitalization(.never).autocorrectionDisabled()
+        #else
+        self
+        #endif
+    }
+
+    @ViewBuilder
+    func radiumPortInputTraits() -> some View {
+        #if os(iOS)
+        keyboardType(.numberPad)
+        #else
+        self
+        #endif
     }
 }

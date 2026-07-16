@@ -1,10 +1,28 @@
 import Foundation
 
-public enum RCONPacketType: Int32, Sendable {
-    case responseValue = 0
-    case command = 2
-    case authentication = 3
-    case authenticationResponse = 2
+/// RCON uses wire value `2` for both an outbound command and an authentication reply.
+/// Request context distinguishes those two packet meanings.
+public enum RCONPacketType: Sendable {
+    case responseValue
+    case command
+    case authentication
+
+    var wireValue: Int32 {
+        switch self {
+        case .responseValue: 0
+        case .command: 2
+        case .authentication: 3
+        }
+    }
+
+    static func decode(wireValue: Int32) -> RCONPacketType? {
+        switch wireValue {
+        case 0: .responseValue
+        case 2: .command
+        case 3: .authentication
+        default: nil
+        }
+    }
 }
 
 public struct RCONPacket: Equatable, Sendable {
@@ -21,7 +39,7 @@ public struct RCONPacket: Equatable, Sendable {
     public func encoded() -> Data {
         var payload = Data()
         payload.appendLittleEndian(requestID)
-        payload.appendLittleEndian(type.rawValue)
+        payload.appendLittleEndian(type.wireValue)
         payload.append(body.data(using: .utf8) ?? Data())
         payload.append(contentsOf: [0, 0])
         var frame = Data()
@@ -36,7 +54,7 @@ public struct RCONPacket: Equatable, Sendable {
         guard declaredLength >= 10, Int(declaredLength) + 4 == data.count else { throw RCONError.malformedPacket }
         let requestID = try data.readInt32(at: 4)
         let rawType = try data.readInt32(at: 8)
-        guard let type = RCONPacketType(rawValue: rawType), data.suffix(2) == Data([0, 0]) else {
+        guard let type = RCONPacketType.decode(wireValue: rawType), data.suffix(2) == Data([0, 0]) else {
             throw RCONError.malformedPacket
         }
         let bodyData = data.subdata(in: 12..<(data.count - 2))
