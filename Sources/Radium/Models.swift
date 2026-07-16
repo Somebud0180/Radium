@@ -18,10 +18,14 @@ struct ServerConfiguration: Identifiable, Codable, Hashable {
 }
 
 enum ShortcutControlType: String, Codable, CaseIterable, Identifiable {
-    case button, toggle, `switch`, terminal
+    case button, toggle, `switch`
     var id: String { rawValue }
     var title: String {
-        switch self { case .button: "Button"; case .toggle: "Toggle action"; case .switch: "Switch"; case .terminal: "Terminal shortcut" }
+        switch self {
+        case .button: "Button"
+        case .toggle: "Toggle action"
+        case .switch: "Switch"
+        }
     }
 }
 
@@ -73,7 +77,6 @@ enum MinecraftCatalog {
     static let curated: [ShortcutDefinition] = [
         .init(label: "List players", description: "Show online players", command: "list", isPinned: true),
         .init(label: "Save world", description: "Save all loaded chunks", command: "save-all", isPinned: true),
-        .init(label: "Broadcast", description: "Use the terminal to add a message", command: "say {message}", controlType: .terminal, isPinned: true),
         .init(label: "Weather clear", description: "Set clear weather", command: "weather clear", isPinned: true),
         .init(label: "Daytime", description: "Set time to day", command: "time set day", isPinned: true)
     ]

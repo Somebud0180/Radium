@@ -90,7 +90,7 @@ struct ShortcutEditorView: View {
             }
         case .toggle:
             Section("Toggle command") { TextField("Command", text: $shortcut.toggleConfiguration.command); Stepper("Response excerpt: \(shortcut.toggleConfiguration.responseExcerptLength) characters", value: $shortcut.toggleConfiguration.responseExcerptLength, in: 40...500, step: 20) }
-        case .button, .terminal:
+        case .button:
             Section("Command") { TextField("RCON command", text: $shortcut.command, axis: .vertical) }
         }
     }

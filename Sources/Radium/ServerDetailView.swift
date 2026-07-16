@@ -92,9 +92,6 @@ struct ShortcutControl: View {
                     }
                     .adaptiveGlassButton(prominent: true)
                     
-                case .terminal:
-                    Text("Use this template in Terminal: \(shortcut.command)").font(.caption)
-                    
                 case .toggle:
                     Button("Run toggle") {
                         Task {
