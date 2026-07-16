@@ -106,19 +106,19 @@ extension View {
     }
     
     /// A button style with a liquid glass / tinted background that changes based on a condition.
-    func adaptiveGlassConditionalButton<S: Shape>(
+    func adaptiveGlassConditionalButton(
         condition: Bool,
         tint: Color,
-        shape: S = Capsule()
+        in shape: some Shape = Capsule()
     ) -> some View {
         self.modifier(AdaptiveGlassConditionalButtonModifier(condition: condition, tint: tint, shape: shape))
     }
     
     /// A button style with a liquid glass / tinted background.
-    func adaptiveGlassButton<S: Shape>(
+    func adaptiveGlassButton(
         tintStrength: CGFloat = 0.8,
         tintColor: Color = Color.white,
-        shape: S = Capsule()
+        in shape: some Shape = Capsule()
     ) -> some View {
         self.modifier(AdaptiveGlassButtonModifier(tintStrength: tintStrength, tint: tintColor, shape: shape))
     }
