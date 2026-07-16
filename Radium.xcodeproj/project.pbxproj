@@ -48,7 +48,6 @@
 		A20000000000000000000022 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
 		A20000000000000000000030 /* Radium.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Radium.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA7539E1300885EC008F664C /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS27.0.sdk/System/Library/Frameworks/Security.framework; sourceTree = DEVELOPER_DIR; };
-		AA7539E9300887AD008F664C /* Radium-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Radium-Info.plist"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -75,7 +74,6 @@
 		A40000000000000000000001 = {
 			isa = PBXGroup;
 			children = (
-				AA7539E9300887AD008F664C /* Radium-Info.plist */,
 				A40000000000000000000002 /* Sources */,
 				A40000000000000000000005 /* Frameworks */,
 				A40000000000000000000006 /* Products */,
@@ -295,7 +293,6 @@
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = L5KZFNA2X4;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "Radium-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = Radium;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_UILaunchStoryboardName = "";
@@ -328,7 +325,6 @@
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = L5KZFNA2X4;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "Radium-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = Radium;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_UILaunchStoryboardName = "";
