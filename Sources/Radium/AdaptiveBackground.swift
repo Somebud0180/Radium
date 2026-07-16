@@ -95,17 +95,31 @@ struct AdaptiveGlassButtonModifier<S: Shape>: ViewModifier {
 // Extend View for easier usage
 extension View {
     /// A rounded style with a thin material background and padding.
-    func adaptiveBackground(interactive: Bool = false, tint: Color?, padding: CGFloat = 12, cornerRadius: CGFloat = 8, in shape: some Shape = RoundedRectangle(cornerRadius: 16, style: .continuous)) -> some View {
+    func adaptiveBackground(
+        interactive: Bool = false,
+        tint: Color? = nil,
+        padding: CGFloat = 12,
+        cornerRadius: CGFloat = 8,
+        in shape: some Shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
+    ) -> some View {
         self.modifier(AdaptiveBackgroundModifier(isInteractive: interactive, tint: tint, padding: padding, cornerRadius: cornerRadius, shape: shape))
     }
     
     /// A button style with a liquid glass / tinted background that changes based on a condition.
-    func adaptiveGlassConditionalButton<S: Shape>(condition: Bool, tint: Color, shape: S = Capsule()) -> some View {
+    func adaptiveGlassConditionalButton<S: Shape>(
+        condition: Bool,
+        tint: Color,
+        shape: S = Capsule()
+    ) -> some View {
         self.modifier(AdaptiveGlassConditionalButtonModifier(condition: condition, tint: tint, shape: shape))
     }
     
     /// A button style with a liquid glass / tinted background.
-    func adaptiveGlassButton<S: Shape>(tintStrength: CGFloat = 0.8, tintColor: Color = Color.white, shape: S = Capsule()) -> some View {
+    func adaptiveGlassButton<S: Shape>(
+        tintStrength: CGFloat = 0.8,
+        tintColor: Color = Color.white,
+        shape: S = Capsule()
+    ) -> some View {
         self.modifier(AdaptiveGlassButtonModifier(tintStrength: tintStrength, tint: tintColor, shape: shape))
     }
 }

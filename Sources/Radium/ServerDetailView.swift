@@ -92,12 +92,9 @@ struct ShortcutControl: View {
                 Button("Refresh status") { Task { await refresh() } }.font(.caption)
             }
         }
-        .padding(8)
+        .padding(12)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .foregroundStyle(.regularMaterial)
-        )
+        .adaptiveBackground()
         .task { if shortcut.controlType == .switch { await refresh() } }
     }
 
