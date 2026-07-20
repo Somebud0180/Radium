@@ -5,6 +5,7 @@ public actor RCONClient {
     private var connection: NWConnection?
     private var requestID: Int32 = 1
     private let timeout: Duration
+    private var buffer = Data()
 
     public init(timeout: Duration = .seconds(8)) { self.timeout = timeout }
 
@@ -46,6 +47,7 @@ public actor RCONClient {
     public func disconnect() {
         connection?.cancel()
         connection = nil
+        buffer.removeAll()
     }
 
     private func nextRequestID() -> Int32 {
@@ -57,9 +59,15 @@ public actor RCONClient {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             connection.stateUpdateHandler = { state in
                 switch state {
-                case .ready: continuation.resume()
-                case .failed(let error): continuation.resume(throwing: RCONError.connectionFailed(error.localizedDescription))
-                case .cancelled: continuation.resume(throwing: RCONError.disconnected)
+                case .ready:
+                    connection.stateUpdateHandler = nil
+                    continuation.resume()
+                case .failed(let error):
+                    connection.stateUpdateHandler = nil
+                    continuation.resume(throwing: RCONError.connectionFailed(error.localizedDescription))
+                case .cancelled:
+                    connection.stateUpdateHandler = nil
+                    continuation.resume(throwing: RCONError.disconnected)
                 default: break
                 }
             }
@@ -80,28 +88,46 @@ public actor RCONClient {
 
     private func receivePacket() async throws -> RCONPacket {
         guard let connection else { throw RCONError.disconnected }
-        var frame = Data()
-        while frame.count < 4 {
-            frame.append(try await receiveChunk(connection, minimum: 4 - frame.count))
+        
+        while buffer.count < 4 {
+            let needed = 4 - buffer.count
+            buffer.append(try await receiveChunk(connection, minimum: needed))
         }
-        let size = try frame.readInt32(at: 0)
+        
+        let size = try buffer.readInt32(at: 0)
+        
         guard size >= 10, size <= 4_194_304 else { throw RCONError.malformedPacket }
-        var packet = frame
-        while packet.count < Int(size) + 4 {
-            packet.append(try await receiveChunk(connection, minimum: Int(size) + 4 - packet.count))
+        
+        let totalLength = Int(size) + 4
+        
+        while buffer.count < totalLength {
+            let needed = totalLength - buffer.count
+            buffer.append(try await receiveChunk(connection, minimum: needed))
         }
-        return try RCONPacket.decode(from: packet)
+        
+        let packetData = buffer.subdata(in: 0..<totalLength)
+        
+        buffer.removeSubrange(0..<totalLength)
+        
+        return try RCONPacket.decode(from: packetData)
     }
 
     private func receiveChunk(_ connection: NWConnection, minimum: Int) async throws -> Data {
         try await withTimeout {
-            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Data, Error>) in
-                connection.receive(minimumIncompleteLength: minimum, maximumLength: 65_536) { data, _, complete, error in
-                    if let error { continuation.resume(throwing: RCONError.connectionFailed(error.localizedDescription)) }
-                    else if let data, !data.isEmpty { continuation.resume(returning: data) }
-                    else if complete { continuation.resume(throwing: RCONError.disconnected) }
-                    else { continuation.resume(throwing: RCONError.disconnected) }
+            try await withTaskCancellationHandler {
+                try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Data, Error>) in
+                    connection.receive(minimumIncompleteLength: minimum, maximumLength: 65_536) { data, _, complete, error in
+                        if let error {
+                            continuation.resume(throwing: RCONError.connectionFailed(error.localizedDescription))
+                        } else if let data, !data.isEmpty {
+                            continuation.resume(returning: data)
+                        } else {
+                            continuation.resume(throwing: RCONError.disconnected)
+                        }
+                    }
                 }
+            } onCancel: {
+                connection.cancel()
             }
         }
     }
