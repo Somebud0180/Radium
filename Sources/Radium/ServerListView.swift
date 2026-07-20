@@ -38,6 +38,7 @@ struct ServerEditorView: View {
     @State private var password = ""
     @State private var profile: ServerProfile = .minecraftJava
     @State private var warningAcknowledged = false
+    @State private var lockWarning = false
 
     var body: some View {
         NavigationStack {
@@ -53,6 +54,7 @@ struct ServerEditorView: View {
                     Label("RCON passwords and commands travel as plaintext over standard TCP.", systemImage: "exclamationmark.triangle.fill")
                         .foregroundStyle(.orange)
                     Toggle("I understand this network risk", isOn: $warningAcknowledged)
+                        .disabled(lockWarning)
                 }
             }
             .navigationTitle(existing == nil ? "Add Server" : "Edit Server")
@@ -62,8 +64,13 @@ struct ServerEditorView: View {
             }
             .onAppear {
                 guard let existing else { return }
-                name = existing.name; host = existing.host; port = String(existing.port); profile = existing.profile
-                password = store.password(for: existing) ?? ""; warningAcknowledged = existing.hasAcknowledgedPlaintextRisk
+                name = existing.name
+                host = existing.host
+                port = String(existing.port)
+                profile = existing.profile
+                password = store.password(for: existing) ?? ""
+                warningAcknowledged = existing.hasAcknowledgedPlaintextRisk
+                lockWarning = existing.hasAcknowledgedPlaintextRisk
             }
         }
     }

@@ -15,7 +15,7 @@ struct ServerDetailView: View {
             Picker("Section", selection: $selectedTab) {
                 Text("Dashboard").tag("Dashboard")
                 Text("Terminal").tag("Terminal")
-                Text("Available Shortcuts").tag("Shortcuts")
+                Text("More Shortcuts").tag("Shortcuts")
             }
             .pickerStyle(.segmented).padding()
             Group {
@@ -28,10 +28,20 @@ struct ServerDetailView: View {
         .toolbar { Button("Edit server", systemImage: "slider.horizontal.3") { isEditingServer = true } }
         .sheet(isPresented: $isEditingServer) { ServerEditorView(existing: server) }
         .task { shortcuts = store.shortcuts(for: server) }
+        .onAppear { Task { await session.connect(to: server, password: store.password(for: server) ?? "") } }
         .onChange(of: shortcuts) { _, updated in store.replaceShortcuts(updated, for: server) }
         .onDisappear { session.disconnect() }
     }
 
+    private var shouldShowReconnect: Bool {
+        switch session.state {
+        case .disconnected, .failed:
+            return true
+        default:
+            return false
+        }
+    }
+    
     private var connectionBar: some View {
         HStack {
             switch session.state {
@@ -40,9 +50,16 @@ struct ServerDetailView: View {
             case .connected: Label("Connected", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
             case .failed(let error): Label(error, systemImage: "exclamationmark.circle.fill").foregroundStyle(.red).lineLimit(1)
             }
+            
             Spacer()
-            if case .connected = session.state { Button("Disconnect") { session.disconnect() } }
-            else { Button("Connect") { Task { await session.connect(to: server, password: store.password(for: server) ?? "") } } }
+            
+            if shouldShowReconnect {
+                Button("Reconnect") {
+                    Task {
+                        await session.connect(to: server, password: store.password(for: server) ?? "")
+                    }
+                }
+            }
         }
         .padding(.horizontal).padding(.vertical, 10).background(.bar)
     }
