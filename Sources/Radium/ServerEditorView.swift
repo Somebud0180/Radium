@@ -10,7 +10,8 @@ import SwiftUI
 struct ServerEditorView: View {
     @EnvironmentObject private var store: ServerStore
     @Environment(\.dismiss) private var dismiss
-    var existing: ServerConfiguration?
+    @ObservedObject var session = RCONSession.shared
+    
     @State private var name = ""
     @State private var host = ""
     @State private var port = "25575"
@@ -18,17 +19,51 @@ struct ServerEditorView: View {
     @State private var profile: ServerProfile = .minecraftJava
     @State private var warningAcknowledged = false
     @State private var lockWarning = false
+    @State private var showConnectionState: Bool = false
+    @State private var error: String = ""
+    
+    var existing: ServerConfiguration?
 
     var body: some View {
         NavigationStack {
             Form {
                 Section("Server") {
                     TextField("Name", text: $name)
+                    
                     TextField("Host or IP address", text: $host).radiumHostInputTraits()
+                        .onChange(of: host) {
+                            showConnectionState = false
+                        }
+                    
                     TextField("Port", text: $port).radiumPortInputTraits()
+                        .onChange(of: port) {
+                            showConnectionState = false
+                        }
+                    
                     SecureField("RCON password", text: $password)
+                    
                     Picker("Profile", selection: $profile) { ForEach(ServerProfile.allCases) { Text($0.title).tag($0) } }
                 }
+                
+                Section {
+                    Button(action: {
+                        testConnection()
+                    }, label: {
+                        Text("Test connection")
+                    })
+                    
+                    if showConnectionState {
+                        switch session.state {
+                        case .disconnected: Label("Disconnected", systemImage: "circle")
+                        case .connecting: Label("Connecting…", systemImage: "arrow.triangle.2.circlepath").foregroundStyle(.orange)
+                        case .connected: Label("Connected", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
+                        case .failed(let error): Label(error, systemImage: "exclamationmark.circle.fill").foregroundStyle(.red)
+                        }
+                    } else if !error.isEmpty {
+                        Label(error, systemImage: "exclamationmark.circle.fill").foregroundStyle(.red)
+                    }
+                }
+                
                 Section("Connection security") {
                     Label("RCON passwords and commands travel as plaintext over standard TCP.", systemImage: "exclamationmark.triangle.fill")
                         .foregroundStyle(.orange)
@@ -61,6 +96,36 @@ struct ServerEditorView: View {
         if let index = store.servers.firstIndex(where: { $0.id == server.id }) { store.servers[index] = server } else { store.servers.append(server) }
         store.savePassword(password, for: server)
         dismiss()
+    }
+    
+    private func testConnection() {
+        let trimmedHost = host.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedPort = port.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        guard !trimmedHost.isEmpty, let portValue = UInt16(trimmedPort) else {
+            error = "Missing or invalid host/port"
+            showConnectionState = false
+            return
+        }
+        
+        error = ""
+        
+        if session.state != .disconnected && session.state != .failed("") {
+            session.disconnect()
+        }
+        
+        Task {
+            showConnectionState = true
+            
+            let testConfig = ServerConfiguration(
+                name: name,
+                host: trimmedHost,
+                port: portValue,
+                profile: profile
+            )
+            
+            await session.connect(to: testConfig, password: password)
+        }
     }
 }
 
