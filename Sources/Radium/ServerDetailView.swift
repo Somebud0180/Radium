@@ -157,10 +157,44 @@ struct TerminalView: View {
     @State private var command = ""
     var body: some View {
         VStack {
-            List(session.history) { entry in
-                VStack(alignment: .leading, spacing: 4) { Text("> \(entry.command)").font(.system(.body, design: .monospaced)); Text(entry.response).font(.system(.caption, design: .monospaced)).textSelection(.enabled) }
+            ScrollViewReader { proxy in
+                List(session.history.reversed()) { entry in
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("> \(entry.command)")
+                            .font(.system(.body, design: .monospaced))
+                        
+                        Text(entry.response)
+                            .font(.system(.caption, design: .monospaced))
+                            .textSelection(.enabled)
+                    }
+                    .id(entry.id)
+                }
+                .defaultScrollAnchor(.bottom)
+                .onChange(of: session.history.count) {
+                    if let newestEntryID = session.history.first?.id {
+                        withAnimation {
+                            proxy.scrollTo(newestEntryID, anchor: .bottom)
+                        }
+                    }
+                }
             }
-            HStack { TextField("RCON command", text: $command, axis: .vertical).textFieldStyle(.roundedBorder); Button("Send") { let value = command; command = ""; Task { _ = await session.execute(value) } }.disabled(command.isEmpty) }.padding()
+
+            HStack {
+                TextField("RCON command", text: $command, axis: .vertical)
+                    .textFieldStyle(.roundedBorder)
+                    .autocorrectionDisabled(true)
+                    .textInputAutocapitalization(.never)
+                
+                Button("Send") {
+                    let value = command.trimmingCharacters(in: .whitespacesAndNewlines)
+                    command = ""
+                    Task {
+                        _ = await session.execute(value)
+                    }
+                }
+                .disabled(command.isEmpty)
+            }
+            .padding()
         }
     }
 }

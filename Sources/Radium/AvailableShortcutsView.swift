@@ -41,6 +41,7 @@ struct AvailableShortcutsView: View {
         guard let index = shortcuts.firstIndex(where: { $0.id == value.id }) else { return }
         shortcuts[index] = value
     }
+    
     private func discover() {
         Task {
             guard let result = await session.execute("help") else { discoveryMessage = "Connect to this server before discovering commands."; return }
@@ -82,18 +83,38 @@ struct ShortcutEditorView: View {
         switch shortcut.controlType {
         case .switch:
             Section("Switch commands") {
-                TextField("Set on", text: $shortcut.switchConfiguration.setOn)
-                TextField("Set off", text: $shortcut.switchConfiguration.setOff)
-                TextField("Check status", text: $shortcut.switchConfiguration.status)
-                TextField("On keywords (comma-separated)", text: keywordsBinding(\.onKeywords))
-                TextField("Off keywords (comma-separated)", text: keywordsBinding(\.offKeywords))
+                Group {
+                    TextField("Set on", text: $shortcut.switchConfiguration.setOn)
+                    TextField("Set off", text: $shortcut.switchConfiguration.setOff)
+                    TextField("Check status", text: $shortcut.switchConfiguration.status)
+                    TextField("On keywords (comma-separated)", text: keywordsBinding(\.onKeywords))
+                    TextField("Off keywords (comma-separated)", text: keywordsBinding(\.offKeywords))
+                }
+                .autocorrectionDisabled(true)
+                .textInputAutocapitalization(.never)
             }
         case .toggle:
-            Section("Toggle command") { TextField("Command", text: $shortcut.toggleConfiguration.command); Stepper("Response excerpt: \(shortcut.toggleConfiguration.responseExcerptLength) characters", value: $shortcut.toggleConfiguration.responseExcerptLength, in: 40...500, step: 20) }
+            Section("Toggle command") {
+                TextField("Command", text: $shortcut.toggleConfiguration.command)
+                    .autocorrectionDisabled(true)
+                    .textInputAutocapitalization(.never)
+                
+                Stepper(
+                    "Response excerpt: \(shortcut.toggleConfiguration.responseExcerptLength) characters",
+                    value: $shortcut.toggleConfiguration.responseExcerptLength,
+                    in: 40...500,
+                    step: 20
+                )
+            }
         case .button:
-            Section("Command") { TextField("RCON command", text: $shortcut.command, axis: .vertical) }
+            Section("Command") {
+                TextField("RCON command", text: $shortcut.command, axis: .vertical)
+                    .autocorrectionDisabled(true)
+                    .textInputAutocapitalization(.never)
+            }
         }
     }
+    
     private var isValid: Bool {
         switch shortcut.controlType {
         case .switch: return !shortcut.switchConfiguration.setOn.isEmpty && !shortcut.switchConfiguration.setOff.isEmpty && !shortcut.switchConfiguration.status.isEmpty
@@ -101,6 +122,7 @@ struct ShortcutEditorView: View {
         default: return !shortcut.command.isEmpty
         }
     }
+    
     private func keywordsBinding(_ keyPath: WritableKeyPath<SwitchConfiguration, [String]>) -> Binding<String> {
         Binding(get: { shortcut.switchConfiguration[keyPath: keyPath].joined(separator: ", ") }, set: { shortcut.switchConfiguration[keyPath: keyPath] = $0.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) } })
     }
