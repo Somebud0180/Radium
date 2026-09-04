@@ -1,7 +1,9 @@
 import Foundation
 import Network
+import os
 
 public actor RCONClient {
+    private let logger = Logger(subsystem: "com.radium.RadiumCore", category: "RCONClient")
     private var connection: NWConnection?
     private var requestID: Int32 = 1
     private let timeout: Duration
@@ -28,20 +30,60 @@ public actor RCONClient {
 
     public func authenticate(password: String) async throws {
         let id = nextRequestID()
+        logger.debug("Authenticating with ID: \(id)")
         try await send(RCONPacket(requestID: id, type: .authentication, body: password))
-        let response = try await receivePacket()
-        guard response.type == .command else { throw RCONError.protocolViolation("Expected authentication response") }
-        guard response.requestID != -1, response.requestID == id else { throw RCONError.authenticationFailed }
+        
+        while true {
+            let response = try await receivePacket()
+            logger.debug("Received authentication response: type=\(response.type.wireValue), id=\(response.requestID)")
+            if response.type == .command { // SERVERDATA_AUTH_RESPONSE
+                guard response.requestID != -1, response.requestID == id else {
+                    logger.error("Authentication failed: ID mismatch or -1")
+                    throw RCONError.authenticationFailed 
+                }
+                logger.info("Authentication successful")
+                return
+            } else if response.type == .responseValue {
+                logger.debug("Ignoring extra SERVERDATA_RESPONSE_VALUE during authentication")
+                continue
+            } else {
+                logger.error("Unexpected packet type during authentication: \(response.type.wireValue)")
+                throw RCONError.protocolViolation("Expected authentication response")
+            }
+        }
     }
 
     public func execute(command: String) async throws -> String {
-        let id = nextRequestID()
-        try await send(RCONPacket(requestID: id, type: .command, body: command))
-        let response = try await receivePacket()
-        guard response.requestID == id, response.type == .responseValue else {
-            throw RCONError.protocolViolation("Unexpected command response")
+        let commandID = nextRequestID()
+        logger.debug("Executing command: '\(command)' with ID: \(commandID)")
+        try await send(RCONPacket(requestID: commandID, type: .command, body: command))
+        
+        let terminatorID = nextRequestID()
+        logger.debug("Sending terminator with ID: \(terminatorID)")
+        try await send(RCONPacket(requestID: terminatorID, type: .command, body: ""))
+        
+        var fullResponse = ""
+        while true {
+            let response = try await receivePacket()
+            logger.debug("Received packet: ID=\(response.requestID), type=\(response.type.wireValue), size=\(response.body.count)")
+            
+            if response.requestID == commandID {
+                if response.type == .responseValue {
+                    fullResponse += response.body
+                } else {
+                    logger.warning("Received packet with command ID but unexpected type: \(response.type.wireValue)")
+                }
+            } else if response.requestID == terminatorID {
+                if response.type == .responseValue {
+                    logger.debug("Received terminator response, finishing execute")
+                    return fullResponse
+                } else {
+                    logger.warning("Received packet with terminator ID but unexpected type: \(response.type.wireValue)")
+                }
+            } else {
+                logger.warning("Received unexpected packet ID: \(response.requestID), expected \(commandID) or \(terminatorID)")
+            }
         }
-        return response.body
     }
 
     public func disconnect() {
@@ -106,10 +148,11 @@ public actor RCONClient {
         }
         
         let packetData = buffer.subdata(in: 0..<totalLength)
-        
         buffer.removeSubrange(0..<totalLength)
         
-        return try RCONPacket.decode(from: packetData)
+        let packet = try RCONPacket.decode(from: packetData)
+        logger.debug("Decoded packet: ID=\(packet.requestID), type=\(packet.type.wireValue)")
+        return packet
     }
 
     private func receiveChunk(_ connection: NWConnection, minimum: Int) async throws -> Data {

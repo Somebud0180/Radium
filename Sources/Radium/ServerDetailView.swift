@@ -45,7 +45,7 @@ struct ServerDetailView: View {
     private var connectionBar: some View {
         HStack {
             switch session.state {
-            case .disconnected: Label("Disconnected", systemImage: "circle")
+            case .disconnected: Label("Disconnected", systemImage: "circle.fill").foregroundStyle(.red)
             case .connecting: Label("Connecting…", systemImage: "arrow.triangle.2.circlepath").foregroundStyle(.orange)
             case .connected: Label("Connected", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
             case .failed(let error): Label(error, systemImage: "exclamationmark.circle.fill").foregroundStyle(.red).lineLimit(1)
@@ -169,6 +169,7 @@ struct TerminalView: View {
                     }
                     .id(entry.id)
                 }
+                .listStyle(.plain)
                 .defaultScrollAnchor(.bottom)
                 .onChange(of: session.history.count) {
                     if let newestEntryID = session.history.first?.id {
